@@ -8,8 +8,8 @@
 - 欄位包含 `ARR / DEP / TYPE / IATA / BAY / STA / STD / 倒數 / 狀態`。
 - 抵達航班顯示在 `ARR` 欄，起飛航班顯示在 `DEP` 欄。
 - 使用 TDX 作為主要航班資料來源，提供班表、登機門、時間與狀態資料。
-- 使用 Flightradar24 補充即時 ETA、機型與追蹤資訊。
-- 支援 FR24 Summary Light 補充註冊編號資料，註冊編號目前先隱藏不顯示。
+- 使用 Flightradar24 補充抵達航班 ETA。
+- 註冊編號目前先隱藏不顯示，避免額外查詢 FR24 Summary Light。
 - 隱藏已完成航班，只保留尚未完成或仍被 FR24 追蹤的航班。
 - 後端使用記憶體快取降低 API 呼叫量。
 
@@ -48,18 +48,11 @@ TDX 主要提供：
 GET /api/fr24/starlux-live
 ```
 
-FR24 主要提供：
+FR24 目前只用來補充：
 
-- 即時追蹤航班
-- ETA
-- 機型
-- 註冊編號
-- 經緯度
-- 高度
-- 地速
-- 航向
+- 抵達航班 ETA
 
-若 live 資料缺少註冊編號，後端可再使用 Summary Light：
+若之後需要補註冊編號，後端可再使用 Summary Light：
 
 ```text
 GET /api/fr24/flight-summary?ids=<fr24_id>
@@ -70,10 +63,10 @@ GET /api/fr24/flight-summary?ids=<fr24_id>
 為了減少 API 額度消耗，外部 API 呼叫集中在後端並使用記憶體快取：
 
 - TDX FIDS：15 分鐘
-- FR24 live：60 分鐘
+- FR24 live：3 小時
 - FR24 Summary Light：15 分鐘
 
-前端每分鐘更新畫面倒數；FR24 每 60 分鐘更新一次；TDX 每 15 分鐘更新一次。
+前端每分鐘更新畫面倒數；FR24 每 3 小時更新一次；TDX 每 15 分鐘更新一次。
 
 ## 啟動方式
 

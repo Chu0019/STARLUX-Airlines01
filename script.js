@@ -5,7 +5,7 @@ const CACHE_KEY = "starlux-tdx-fids-tpe-v7-next-day";
 const FR24_CACHE_KEY = "starlux-fr24-live-v1";
 const FR24_SUMMARY_CACHE_KEY = "starlux-fr24-summary-v1";
 const CACHE_MAX_AGE = 15 * 60 * 1000;
-const FR24_CACHE_MAX_AGE = 60 * 60 * 1000;
+const FR24_CACHE_MAX_AGE = 3 * 60 * 60 * 1000;
 const FR24_SUMMARY_CACHE_MAX_AGE = 15 * 60 * 1000;
 
 const fallbackFlights = [
@@ -335,35 +335,6 @@ function chunkItems(items, size) {
   return chunks;
 }
 
-function mapFr24FlightsToBoard() {
-  const now = new Date();
-
-  return fr24Flights
-    .map((flight) => {
-      const isArrival = flight.destination === "TPE";
-      const airport = isArrival ? flight.origin : flight.destination;
-      const etaDate = flight.eta ? new Date(flight.eta) : null;
-      const hasEta = etaDate && !Number.isNaN(etaDate.getTime());
-      const targetDate = hasEta ? dateFormatter.format(etaDate) : dateFormatter.format(now);
-      const targetTime = hasEta ? formatClock(etaDate) : formatClock(now);
-
-      return {
-        type: isArrival ? "抵達" : "起飛",
-        flight: flight.flight,
-        city: getCityName(airport),
-        gate: "--",
-        targetDate,
-        scheduledTime: "--",
-        estimatedTime: hasEta ? targetTime : "--",
-        targetTime,
-        rawStatus: "FR24",
-        sourceUpdatedAt: flight.updatedAt || new Date().toISOString(),
-        fromFr24Only: true,
-      };
-    })
-    .filter((flight) => flight.flight && flight.targetDate && flight.targetTime);
-}
-
 async function hydrateFr24Registrations(nextFlights) {
   const missingSummaryIds = nextFlights
     .filter((flight) => flight.fr24Id && !flight.registration)
@@ -438,7 +409,7 @@ function filterCurrentFlights(mappedFlights, now, trackingMap) {
   const tomorrow = getTomorrowDate(now);
 
   return mappedFlights
-    .filter((flight) => [today, tomorrow].includes(flight.targetDate) || flight.fromFr24Only)
+    .filter((flight) => [today, tomorrow].includes(flight.targetDate))
     .map((flight) => {
       const trackedFlight = trackingMap.get(flight.flight);
       const fr24Eta = trackedFlight?.eta ? new Date(trackedFlight.eta) : null;
@@ -449,11 +420,9 @@ function filterCurrentFlights(mappedFlights, now, trackingMap) {
         ? fr24Eta
         : getTaipeiDate(flight.targetDate, flight.targetTime);
       const rawMinutes = Math.ceil((targetDateTime - now) / 60000);
-      const minutes = flight.fromFr24Only && rawMinutes <= 0 ? 1 : rawMinutes;
+      const minutes = rawMinutes;
       const deltaStatus = getScheduleDeltaStatus(flight, targetDateTime);
-      const status = flight.fromFr24Only
-        ? "追蹤中"
-        : deltaStatus || flight.status || mapFlightStatus(flight.rawStatus || "", flight.type, minutes);
+      const status = deltaStatus || flight.status || mapFlightStatus(flight.rawStatus || "", flight.type, minutes);
       return {
         ...flight,
         targetDateTime,
@@ -464,7 +433,7 @@ function filterCurrentFlights(mappedFlights, now, trackingMap) {
       };
     })
     .filter((flight) => !Number.isNaN(flight.targetDateTime.getTime()))
-    .filter((flight) => flight.minutes > 0 || flight.fromFr24Only)
+    .filter((flight) => flight.minutes > 0)
     .sort((a, b) => a.targetDateTime - b.targetDateTime);
 }
 
@@ -551,7 +520,7 @@ async function fetchFr24Flights() {
 
     const payload = await response.json();
     const nextFr24Flights = Array.isArray(payload.flights)
-      ? await hydrateFr24Registrations(payload.flights)
+      ? payload.flights
       : [];
 
     if (payload.available && nextFr24Flights.length > 0) {
@@ -571,37 +540,14 @@ async function fetchFr24Flights() {
   }
 }
 
-function mergeFr24Flights(nextFlights) {
-  if (fr24Flights.length === 0) {
-    return nextFlights;
-  }
-
-  const existing = new Map(nextFlights.map((flight) => [flight.flight, flight]));
-
-  for (const flight of mapFr24FlightsToBoard()) {
-    if (!existing.has(flight.flight)) {
-      existing.set(flight.flight, flight);
-    }
-  }
-
-  return Array.from(existing.values());
-}
-
 async function loadFlights() {
   await fetchFr24Flights();
 
   try {
     flights = await fetchTdxFlights();
   } catch {
-    flights = fr24Flights.length > 0 ? mapFr24FlightsToBoard() : fallbackFlights;
-    dataSource = fr24Flights.length > 0 ? "FR24 即時追蹤" : "備用資料";
-  }
-
-  const mergedFlights = mergeFr24Flights(flights);
-
-  if (mergedFlights.length > flights.length) {
-    flights = mergedFlights;
-    dataSource = `${dataSource} + FR24`;
+    flights = fallbackFlights;
+    dataSource = "備用資料";
   }
 
   nextDataRefreshAt = new Date(Date.now() + CACHE_MAX_AGE);
@@ -616,7 +562,7 @@ async function refreshFr24Flights() {
 function render() {
   const now = new Date();
   const fr24FlightMap = getFr24FlightMap();
-  const currentFlights = filterCurrentFlights(mergeFr24Flights(flights), now, fr24FlightMap);
+  const currentFlights = filterCurrentFlights(flights, now, fr24FlightMap);
   const nextFlight = currentFlights.find((flight) => flight.minutes > 0);
   const sourceUpdatedAt = currentFlights[0]?.sourceUpdatedAt
     ? new Date(currentFlights[0].sourceUpdatedAt)
@@ -630,17 +576,14 @@ function render() {
     .map((flight) => {
       const isNext = nextFlight && flight.flight === nextFlight.flight;
       const countdownText = `${flight.minutes} 分鐘`;
-      const trackedFlight = fr24FlightMap.get(flight.flight);
-      const aircraft = getAircraftDisplayName(trackedFlight?.aircraft || flight.aircraft);
+      const hasFr24Eta = flight.type === "抵達" && flight.timeSource === "FR24 ETA";
+      const aircraft = getAircraftDisplayName(flight.aircraft);
       const scheduledDisplayTime = flight.type === "起飛"
         ? flight.displayEstimatedTime || "--"
         : flight.scheduledTime || "--";
       const estimatedDisplayTime = flight.type === "起飛"
         ? flight.scheduledTime || "--"
         : flight.displayEstimatedTime || "--";
-      const trackingTitle = trackedFlight
-        ? `FR24 ${trackedFlight.aircraft || ""} ${trackedFlight.registration || ""}`.trim()
-        : "";
 
       return `
         <div class="flight-row ${isNext ? "is-next" : ""}" role="row">
@@ -662,11 +605,11 @@ function render() {
             ${flight.type === "抵達" && flight.timeSource === "FR24 ETA" ? `<small class="time-source">ETA</small>` : ""}
           </span>
           <span class="minutes ${flight.minutes <= 0 ? "arrived" : ""}" data-label="倒數" role="cell">
-            ${flight.fromFr24Only ? "追蹤中" : countdownText}
+            ${countdownText}
           </span>
           <span class="status-cell" data-label="狀態" role="cell">
             <span class="status ${getStatusClass(flight.status)}">
-              ${flight.status}${trackedFlight ? `<small title="${trackingTitle}">FR24</small>` : ""}
+              ${flight.status}${hasFr24Eta ? "<small>FR24 ETA</small>" : ""}
             </span>
           </span>
         </div>
