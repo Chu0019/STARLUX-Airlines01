@@ -63,10 +63,10 @@ GET /api/fr24/flight-summary?ids=<fr24_id>
 為了減少 API 額度消耗，外部 API 呼叫集中在後端並使用記憶體快取：
 
 - TDX FIDS：15 分鐘
-- FR24 live：3 小時
+- FR24 live：2 小時
 - FR24 Summary Light：15 分鐘
 
-前端每分鐘更新畫面倒數；FR24 每 3 小時更新一次；TDX 每 15 分鐘更新一次。
+前端每分鐘更新畫面倒數；FR24 每 2 小時更新一次；TDX 每 15 分鐘更新一次。
 
 ## 啟動方式
 

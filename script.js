@@ -5,7 +5,7 @@ const CACHE_KEY = "starlux-tdx-fids-tpe-v7-next-day";
 const FR24_CACHE_KEY = "starlux-fr24-live-v1";
 const FR24_SUMMARY_CACHE_KEY = "starlux-fr24-summary-v1";
 const CACHE_MAX_AGE = 15 * 60 * 1000;
-const FR24_CACHE_MAX_AGE = 3 * 60 * 60 * 1000;
+const FR24_CACHE_MAX_AGE = 2 * 60 * 60 * 1000;
 const FR24_SUMMARY_CACHE_MAX_AGE = 15 * 60 * 1000;
 
 const fallbackFlights = [

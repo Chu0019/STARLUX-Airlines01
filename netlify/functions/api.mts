@@ -27,7 +27,7 @@ type ApiCache = {
 };
 
 const TDX_CACHE_MAX_AGE = 15 * 60 * 1000;
-const FR24_LIVE_CACHE_MAX_AGE = 3 * 60 * 60 * 1000;
+const FR24_LIVE_CACHE_MAX_AGE = 2 * 60 * 60 * 1000;
 const FR24_SUMMARY_CACHE_MAX_AGE = 15 * 60 * 1000;
 
 function getApiCache() {
