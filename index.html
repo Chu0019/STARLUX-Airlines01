@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星宇航空動態航班看板</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="board" aria-label="星宇航空動態航班看板">
+      <section class="summary" aria-label="航班摘要">
+        <div>
+          <span>目前顯示</span>
+          <strong id="flightCount">0</strong>
+          <span>班星宇航班</span>
+        </div>
+        <div>
+          <span>最近航班</span>
+          <strong id="nextArrival">-- 分鐘</strong>
+        </div>
+        <div>
+          <span>下次更新</span>
+          <strong id="updatedAt">--:--</strong>
+        </div>
+      </section>
+
+      <section class="flight-panel" aria-label="星宇航空航班資訊">
+        <div class="table-head" role="row">
+          <span role="columnheader">ARR</span>
+          <span role="columnheader">DEP</span>
+          <span role="columnheader">TYPE</span>
+          <span role="columnheader">IATA</span>
+          <span role="columnheader">BAY</span>
+          <span role="columnheader">STA</span>
+          <span role="columnheader">STD</span>
+          <span role="columnheader">倒數</span>
+          <span role="columnheader">狀態</span>
+        </div>
+        <div id="flightRows" class="flight-rows" aria-live="polite"></div>
+      </section>
+
+      <footer class="ticker" aria-label="看板訊息">
+        <div id="tickerText">星宇航空航班動態顯示中</div>
+      </footer>
+    </main>
+
+    <script src="script.js?v=api-cache-optimized-1"></script>
+  </body>
+</html>
