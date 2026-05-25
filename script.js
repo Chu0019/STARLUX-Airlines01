@@ -96,7 +96,6 @@ const rowsElement = document.querySelector("#flightRows");
 const updatedAtElement = document.querySelector("#updatedAt");
 const countElement = document.querySelector("#flightCount");
 const nextArrivalElement = document.querySelector("#nextArrival");
-const tickerElement = document.querySelector("#tickerText");
 
 let flights = fallbackFlights;
 let dataSource = "備用資料";
@@ -681,13 +680,7 @@ function render() {
     })
     .join("");
 
-  const fr24Text = fr24Flights.length > 0 ? `　FR24追蹤 ${fr24Flights.length} 架` : "";
-
-  tickerElement.textContent = `${dataSource}${fr24Text}　資料更新 ${formatClock(sourceUpdatedAt)}　下次更新 ${refreshMinutes} 分鐘　倒數更新 ${formatClock(now)}　下一筆航班：${
-    nextFlight
-      ? `${nextFlight.type} ${nextFlight.flight} ${nextFlight.city}，倒數 ${nextFlight.minutes} 分鐘`
-      : "今日航班皆已完成"
-  }`;
+  void sourceUpdatedAt;
 }
 
 loadFlights();
