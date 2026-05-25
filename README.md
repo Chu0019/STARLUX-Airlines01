@@ -83,8 +83,11 @@ GET /api/fr24/flight-summary?ids=<fr24_id>
 
 ```bash
 export FR24_API_TOKEN="你的 Flightradar24 API token"
-export TDX_API_TOKEN="你的 TDX Bearer token"
+export TDX_CLIENT_ID="你的 TDX Client ID"
+export TDX_CLIENT_SECRET="你的 TDX Client Secret"
 ```
+
+`TDX_API_TOKEN` 也支援，但 TDX access token 會過期；建議使用 `TDX_CLIENT_ID` 和 `TDX_CLIENT_SECRET` 讓後端自動換 token。
 
 啟動本機伺服器：
 
@@ -114,4 +117,3 @@ http://127.0.0.1:4173/
 - `.env`、`.env.*` 已加入 `.gitignore`。
 - 後端記憶體快取在伺服器重啟後會清空。
 - 註冊編號欄位目前隱藏，之後需要時可以再開啟。
-

@@ -5,6 +5,8 @@ const path = require("node:path");
 const PORT = Number(process.env.PORT || 4173);
 const FR24_API_TOKEN = process.env.FR24_API_TOKEN;
 const TDX_API_TOKEN = process.env.TDX_API_TOKEN || process.env.TDX_API_KEY;
+const TDX_CLIENT_ID = process.env.TDX_CLIENT_ID;
+const TDX_CLIENT_SECRET = process.env.TDX_CLIENT_SECRET;
 const ROOT = __dirname;
 const TDX_CACHE_MAX_AGE = 15 * 60 * 1000;
 const FR24_LIVE_CACHE_MAX_AGE = 2 * 60 * 1000;
@@ -12,6 +14,7 @@ const FR24_SUMMARY_CACHE_MAX_AGE = 15 * 60 * 1000;
 
 const apiCache = {
   tdx: null,
+  tdxAccessToken: null,
   fr24Live: null,
   fr24Summary: new Map(),
 };
@@ -41,6 +44,46 @@ function getFr24Headers() {
     "accept-version": "v1",
     authorization: `Bearer ${FR24_API_TOKEN}`,
   };
+}
+
+async function getTdxAccessToken() {
+  if (!TDX_CLIENT_ID || !TDX_CLIENT_SECRET) {
+    return TDX_API_TOKEN || "";
+  }
+
+  if (apiCache.tdxAccessToken && Date.now() < apiCache.tdxAccessToken.expiresAt) {
+    return apiCache.tdxAccessToken.token;
+  }
+
+  const response = await fetch("https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token", {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: TDX_CLIENT_ID,
+      client_secret: TDX_CLIENT_SECRET,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`TDX auth returned HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const token = payload.access_token || "";
+
+  if (!token) {
+    throw new Error("TDX auth response did not include an access token");
+  }
+
+  apiCache.tdxAccessToken = {
+    token,
+    expiresAt: Date.now() + Math.max(0, Number(payload.expires_in || 3600) - 60) * 1000,
+  };
+
+  return token;
 }
 
 function normalizeFr24Flight(flight) {
@@ -231,8 +274,10 @@ async function handleTdxRequest(response) {
 
     const headers = { accept: "application/json" };
 
-    if (TDX_API_TOKEN) {
-      headers.authorization = `Bearer ${TDX_API_TOKEN}`;
+    const tdxAccessToken = await getTdxAccessToken();
+
+    if (tdxAccessToken) {
+      headers.authorization = `Bearer ${tdxAccessToken}`;
     }
 
     const url = new URL("https://tdx.transportdata.tw/api/basic/v2/Air/FIDS/Flight");

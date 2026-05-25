@@ -18,6 +18,10 @@ type TdxCacheEntry = {
 
 type ApiCache = {
   tdx: TdxCacheEntry | null;
+  tdxAccessToken: {
+    token: string;
+    expiresAt: number;
+  } | null;
   fr24Live: CacheEntry<Record<string, unknown>> | null;
   fr24Summary: Map<string, CacheEntry<Record<string, unknown>>>;
 };
@@ -34,6 +38,7 @@ function getApiCache() {
   if (!store.__starluxApiCache) {
     store.__starluxApiCache = {
       tdx: null,
+      tdxAccessToken: null,
       fr24Live: null,
       fr24Summary: new Map(),
     };
@@ -64,12 +69,65 @@ function getTdxToken() {
   return Netlify.env.get("TDX_API_TOKEN") || Netlify.env.get("TDX_API_KEY");
 }
 
+function getTdxClientId() {
+  return Netlify.env.get("TDX_CLIENT_ID");
+}
+
+function getTdxClientSecret() {
+  return Netlify.env.get("TDX_CLIENT_SECRET");
+}
+
 function getFr24Headers() {
   return {
     accept: "application/json",
     "accept-version": "v1",
     authorization: `Bearer ${getFr24Token()}`,
   };
+}
+
+async function getTdxAccessToken() {
+  const staticToken = getTdxToken();
+  const clientId = getTdxClientId();
+  const clientSecret = getTdxClientSecret();
+  const apiCache = getApiCache();
+
+  if (!clientId || !clientSecret) {
+    return staticToken || "";
+  }
+
+  if (apiCache.tdxAccessToken && Date.now() < apiCache.tdxAccessToken.expiresAt) {
+    return apiCache.tdxAccessToken.token;
+  }
+
+  const response = await fetch("https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token", {
+    method: "POST",
+    headers: {
+      "content-type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`TDX auth returned HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const token = payload.access_token || "";
+
+  if (!token) {
+    throw new Error("TDX auth response did not include an access token");
+  }
+
+  apiCache.tdxAccessToken = {
+    token,
+    expiresAt: Date.now() + Math.max(0, Number(payload.expires_in || 3600) - 60) * 1000,
+  };
+
+  return token;
 }
 
 function normalizeFr24Flight(flight: Record<string, any>) {
@@ -266,7 +324,7 @@ async function handleTdxRequest() {
     }
 
     const headers: Record<string, string> = { accept: "application/json" };
-    const token = getTdxToken();
+    const token = await getTdxAccessToken();
 
     if (token) {
       headers.authorization = `Bearer ${token}`;
