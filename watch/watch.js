@@ -265,22 +265,24 @@ function getStatusClass(status) {
   return "scheduled";
 }
 
-function buildNextDayPreviewFlights(sourceFlights) {
+function buildNextDayPreviewFlights(sourceFlights, now = new Date()) {
   const existingFlights = new Set(sourceFlights.map((flight) => `${flight.targetDate}-${flight.flight}`));
 
   return sourceFlights
     .filter((flight) => {
-      if (!flight.scheduledTime) return false;
+      if (!flight.targetDate || !flight.targetTime) return false;
 
-      const scheduledHour = Number(flight.scheduledTime.split(":")[0]);
-      const rawStatus = flight.rawStatus || "";
+      const targetDateTime = getTaipeiDate(flight.targetDate, flight.targetTime);
+      if (Number.isNaN(targetDateTime.getTime()) || targetDateTime > now) return false;
+
+      const scheduledHour = Number((flight.scheduledTime || flight.targetTime).split(":")[0]);
 
       if (flight.type === "起飛") {
-        return scheduledHour >= 0 && scheduledHour < 3 && /出發|depart/i.test(rawStatus);
+        return scheduledHour >= 0 && scheduledHour < 3;
       }
 
       if (flight.type === "抵達") {
-        return scheduledHour >= 3 && scheduledHour < 8 && /抵達|arriv/i.test(rawStatus);
+        return scheduledHour >= 3 && scheduledHour < 8;
       }
 
       return false;
@@ -295,6 +297,17 @@ function buildNextDayPreviewFlights(sourceFlights) {
       nextDayPreview: true,
     }))
     .filter((flight) => !existingFlights.has(`${flight.targetDate}-${flight.flight}`));
+}
+
+function getExpiredTrackedFlightCodes(sourceFlights, now) {
+  return new Set(sourceFlights
+    .filter((flight) => trackedFlightCodes.includes(flight.flight))
+    .filter((flight) => !flight.nextDayPreview && flight.targetDate && flight.targetTime)
+    .filter((flight) => {
+      const targetDateTime = getTaipeiDate(flight.targetDate, flight.targetTime);
+      return !Number.isNaN(targetDateTime.getTime()) && targetDateTime <= now;
+    })
+    .map((flight) => flight.flight));
 }
 
 function getFr24FlightMap() {
@@ -547,9 +560,10 @@ function renderWatchList() {
     : "尚未設定追蹤航班";
 }
 
-function getWaitingRows(activeFlightCodes) {
+function getWaitingRows(activeFlightCodes, hiddenFlightCodes = new Set()) {
   return trackedFlightCodes
     .filter((flight) => !activeFlightCodes.has(flight))
+    .filter((flight) => !hiddenFlightCodes.has(flight))
     .map((flight) => `
       <div class="flight-row waiting-row" role="row">
         <span class="flight-code arrival-flight is-empty" data-label="ARR" role="cell"></span>
@@ -624,6 +638,7 @@ function render() {
   }
 
   const activeFlightCodes = new Set(currentFlights.map((flight) => flight.flight));
+  const expiredFlightCodes = getExpiredTrackedFlightCodes(flights, now);
   const renderedRows = currentFlights.map((flight) => {
     const isNext = nextFlight && flight.flight === nextFlight.flight;
     const hasFr24Eta = flight.timeSource === "FR24 ETA";
@@ -660,7 +675,7 @@ function render() {
     `;
   });
 
-  rowsElement.innerHTML = [...renderedRows, ...getWaitingRows(activeFlightCodes)].join("");
+  rowsElement.innerHTML = [...renderedRows, ...getWaitingRows(activeFlightCodes, expiredFlightCodes)].join("");
 }
 
 watchForm.addEventListener("submit", (event) => {
