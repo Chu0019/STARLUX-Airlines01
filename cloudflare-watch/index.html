@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>星宇航空指定航班追蹤</title>
+    <link rel="stylesheet" href="styles.css?v=cloudflare-watch-1" />
+  </head>
+  <body>
+    <main class="board watch-board" aria-label="星宇航空指定航班追蹤">
+      <section class="watch-controls" aria-label="指定航班輸入">
+        <form id="watchForm" class="watch-form">
+          <label for="flightInput">追蹤航班</label>
+          <input id="flightInput" type="text" placeholder="JX887,JX202,JX786" autocomplete="off" />
+          <button type="submit">追蹤</button>
+        </form>
+        <div id="watchList" class="watch-list" aria-live="polite"></div>
+      </section>
+
+      <section class="summary" aria-label="航班摘要">
+        <div>
+          <span>TDX更新</span>
+          <strong id="updatedAt">--:--</strong>
+          <small id="tdxLastUpdatedAt">上次更新 --:--</small>
+        </div>
+        <div>
+          <span>FR24更新</span>
+          <strong id="fr24UpdatedAt">--:--</strong>
+          <small id="fr24LastUpdatedAt">上次更新 --:--</small>
+        </div>
+        <div class="summary-action">
+          <button id="forceRefreshButton" type="button">強制更新</button>
+          <small id="forceRefreshStatus">只更新追蹤航班</small>
+        </div>
+      </section>
+
+      <section class="flight-panel" aria-label="指定航班資訊">
+        <div class="table-head" role="row">
+          <span role="columnheader">ARR</span>
+          <span role="columnheader">DEP</span>
+          <span role="columnheader">TYPE</span>
+          <span role="columnheader">IATA</span>
+          <span role="columnheader">BAY</span>
+          <span role="columnheader">STA</span>
+          <span role="columnheader">STD</span>
+          <span role="columnheader">倒數</span>
+          <span role="columnheader">狀態</span>
+        </div>
+        <div id="flightRows" class="flight-rows" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script src="watch.js?v=cloudflare-watch-1"></script>
+  </body>
+</html>
