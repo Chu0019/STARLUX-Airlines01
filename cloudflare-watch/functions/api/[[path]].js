@@ -1,5 +1,5 @@
 const TDX_CACHE_MAX_AGE = 15 * 60 * 1000;
-const FR24_LIVE_CACHE_MAX_AGE = 30 * 60 * 1000;
+const FR24_LIVE_CACHE_MAX_AGE = 10 * 60 * 1000;
 
 const apiCache = globalThis.__starluxCloudflareCache || {
   tdxFlights: new Map(),

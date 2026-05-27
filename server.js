@@ -9,7 +9,7 @@ const TDX_CLIENT_ID = process.env.TDX_CLIENT_ID;
 const TDX_CLIENT_SECRET = process.env.TDX_CLIENT_SECRET;
 const ROOT = __dirname;
 const TDX_CACHE_MAX_AGE = 15 * 60 * 1000;
-const FR24_LIVE_CACHE_MAX_AGE = 30 * 60 * 1000;
+const FR24_LIVE_CACHE_MAX_AGE = 10 * 60 * 1000;
 const FR24_SUMMARY_CACHE_MAX_AGE = 15 * 60 * 1000;
 
 const apiCache = {

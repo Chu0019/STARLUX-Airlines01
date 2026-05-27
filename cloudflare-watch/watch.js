@@ -1,7 +1,7 @@
 const TDX_TRACKED_URL = "/api/tdx/fids/flights";
 const FR24_TRACKED_URL = "/api/fr24/flights";
 const WATCH_STORAGE_KEY = "starlux-watch-flights-v1";
-const FR24_CACHE_MAX_AGE = 30 * 60 * 1000;
+const FR24_CACHE_MAX_AGE = 10 * 60 * 1000;
 const FORCE_REFRESH_COOLDOWN = 5 * 60 * 1000;
 
 const airportCityNames = {
@@ -68,7 +68,7 @@ let trackedFlightCodes = readTrackedFlightCodes();
 let flights = [];
 let fr24Flights = [];
 let nextTdxRefreshAt = getNextMinuteBoundary(15);
-let nextFr24RefreshAt = getNextMinuteBoundary(30);
+let nextFr24RefreshAt = getNextMinuteBoundary(10);
 let lastTdxRefreshAt = null;
 let lastFr24RefreshAt = null;
 let forceRefreshCooldownUntil = null;
@@ -468,7 +468,7 @@ async function fetchFr24Flights(force = false) {
 
   const payload = await response.json();
   lastFr24RefreshAt = payload.sourceUpdatedAt ? new Date(payload.sourceUpdatedAt) : new Date();
-  nextFr24RefreshAt = getNextMinuteBoundary(30);
+  nextFr24RefreshAt = getNextMinuteBoundary(10);
   return Array.isArray(payload.flights) ? payload.flights : [];
 }
 
