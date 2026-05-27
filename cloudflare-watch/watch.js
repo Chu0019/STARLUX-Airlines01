@@ -290,8 +290,8 @@ function buildNextDayPreviewFlights(sourceFlights, now = new Date()) {
     .map((flight) => ({
       ...flight,
       targetDate: addDays(flight.targetDate, 1),
-      estimatedTime: flight.estimatedTime || flight.scheduledTime,
-      targetTime: flight.estimatedTime || flight.scheduledTime,
+      estimatedTime: flight.scheduledTime || flight.targetTime,
+      targetTime: flight.scheduledTime || flight.targetTime,
       rawStatus: "隔日預告",
       sourceUpdatedAt: new Date().toISOString(),
       nextDayPreview: true,
