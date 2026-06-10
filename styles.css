@@ -230,7 +230,8 @@ h1 {
 }
 
 .admin-board {
-  grid-template-rows: auto auto 1fr;
+  align-content: start;
+  grid-template-rows: auto auto;
 }
 
 .watch-form input {
