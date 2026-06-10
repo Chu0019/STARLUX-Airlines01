@@ -218,6 +218,21 @@ h1 {
   white-space: nowrap;
 }
 
+.watch-list-visible {
+  color: var(--blue);
+  font-size: 0.92rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.pi-display {
+  grid-template-rows: auto 1fr;
+}
+
+.admin-board {
+  grid-template-rows: auto auto 1fr;
+}
+
 .watch-form input {
   width: 100%;
   min-height: 42px;

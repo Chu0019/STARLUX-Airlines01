@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>星宇航空動態航班看板</title>
-    <link rel="stylesheet" href="styles.css?v=mobile-fit-2" />
+    <title>星宇航空樹莓派追蹤看板</title>
+    <link rel="stylesheet" href="styles.css?v=pi-watch-1" />
   </head>
   <body>
-    <main class="board" aria-label="星宇航空動態航班看板">
-      <section class="summary" aria-label="航班摘要">
+    <main class="board watch-board pi-display" aria-label="星宇航空樹莓派追蹤看板">
+      <section class="summary" aria-label="更新資訊">
         <div>
           <span>TDX更新</span>
           <strong id="updatedAt">--:--</strong>
@@ -19,13 +19,14 @@
           <strong id="fr24UpdatedAt">--:--</strong>
           <small id="fr24LastUpdatedAt">上次更新 --:--</small>
         </div>
-        <div class="summary-action">
-          <button id="forceRefreshButton" type="button">強制更新</button>
-          <small id="forceRefreshStatus">重新抓 TDX / FR24</small>
+        <div>
+          <span>追蹤同步</span>
+          <strong id="configStatus">--</strong>
+          <small id="watchList">等待手機設定</small>
         </div>
       </section>
 
-      <section class="flight-panel" aria-label="星宇航空航班資訊">
+      <section class="flight-panel" aria-label="指定航班資訊">
         <div class="table-head" role="row">
           <span role="columnheader">ARR</span>
           <span role="columnheader">DEP</span>
@@ -39,9 +40,8 @@
         </div>
         <div id="flightRows" class="flight-rows" aria-live="polite"></div>
       </section>
-
     </main>
 
-    <script src="script.js?v=force-refresh-4"></script>
+    <script src="watch.js?v=pi-watch-1"></script>
   </body>
 </html>

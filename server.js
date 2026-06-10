@@ -3,11 +3,13 @@ const fs = require("node:fs/promises");
 const path = require("node:path");
 
 const PORT = Number(process.env.PORT || 4173);
+const HOST = process.env.HOST || "127.0.0.1";
 const FR24_API_TOKEN = process.env.FR24_API_TOKEN;
 const TDX_API_TOKEN = process.env.TDX_API_TOKEN || process.env.TDX_API_KEY;
 const TDX_CLIENT_ID = process.env.TDX_CLIENT_ID;
 const TDX_CLIENT_SECRET = process.env.TDX_CLIENT_SECRET;
 const ROOT = __dirname;
+const WATCH_CONFIG_PATH = path.join(ROOT, "watch-config.json");
 const TDX_CACHE_MAX_AGE = 15 * 60 * 1000;
 const FR24_LIVE_CACHE_MAX_AGE = 10 * 60 * 1000;
 const FR24_SUMMARY_CACHE_MAX_AGE = 15 * 60 * 1000;
@@ -34,6 +36,47 @@ function sendJson(response, status, payload) {
     "cache-control": "no-store",
   });
   response.end(JSON.stringify(payload));
+}
+
+async function readWatchConfig() {
+  try {
+    const rawConfig = await fs.readFile(WATCH_CONFIG_PATH, "utf8");
+    const config = JSON.parse(rawConfig);
+    const flights = Array.isArray(config.flights)
+      ? parseFlightList(config.flights.join(","))
+      : parseFlightList(config.flights || "");
+
+    return {
+      flights,
+      updatedAt: config.updatedAt || "",
+    };
+  } catch {
+    return {
+      flights: [],
+      updatedAt: "",
+    };
+  }
+}
+
+async function writeWatchConfig(flights) {
+  const config = {
+    flights: parseFlightList(Array.isArray(flights) ? flights.join(",") : flights),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await fs.writeFile(WATCH_CONFIG_PATH, `${JSON.stringify(config, null, 2)}\n`);
+  return config;
+}
+
+async function readJsonBody(request) {
+  const chunks = [];
+
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
 function isFreshCache(entry, maxAge) {
@@ -419,6 +462,27 @@ async function handleFr24Request(request, response) {
   }
 }
 
+async function handleWatchConfigRequest(request, response) {
+  try {
+    if (request.method === "GET") {
+      sendJson(response, 200, await readWatchConfig());
+      return;
+    }
+
+    if (request.method === "POST") {
+      const body = await readJsonBody(request);
+      sendJson(response, 200, await writeWatchConfig(body.flights || ""));
+      return;
+    }
+
+    sendJson(response, 405, { error: "Method not allowed" });
+  } catch (error) {
+    sendJson(response, 400, {
+      error: error instanceof Error ? error.message : "Invalid watch config request",
+    });
+  }
+}
+
 async function handleFr24FlightsRequest(request, response) {
   try {
     const url = new URL(request.url, `http://${request.headers.host}`);
@@ -615,6 +679,11 @@ async function handleStaticRequest(request, response) {
 const server = http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
 
+  if (url.pathname === "/api/watch/config") {
+    handleWatchConfigRequest(request, response);
+    return;
+  }
+
   if (url.pathname === "/api/fr24/starlux-live") {
     handleFr24Request(request, response);
     return;
@@ -643,6 +712,6 @@ const server = http.createServer((request, response) => {
   handleStaticRequest(request, response);
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`StarLux board server running at http://127.0.0.1:${PORT}/`);
+server.listen(PORT, HOST, () => {
+  console.log(`StarLux board server running at http://${HOST}:${PORT}/`);
 });
