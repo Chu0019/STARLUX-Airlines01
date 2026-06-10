@@ -332,6 +332,7 @@ function mapFlightStatus(rawStatus) {
   const status = String(rawStatus || "").toLowerCase();
 
   if (status.includes("取消") || status.includes("cancel")) return "延誤";
+  if (status.includes("延遲")) return "延遲";
   if (status.includes("延誤") || status.includes("delay")) return "延誤";
   return "準時";
 }
@@ -341,6 +342,10 @@ function getStatusClass(status) {
   if (status === "延遲") return "delayed";
   if (status === "延誤") return "delayed";
   return "scheduled";
+}
+
+function shouldKeepPastDueFlight(flight) {
+  return ["延遲", "延誤"].includes(flight.status);
 }
 
 function buildNextDayPreviewFlights(sourceFlights, now = new Date()) {
@@ -383,7 +388,10 @@ function getExpiredTrackedFlightCodes(sourceFlights, now) {
     .filter((flight) => !flight.nextDayPreview && flight.targetDate && flight.targetTime)
     .filter((flight) => {
       const targetDateTime = getTaipeiDate(flight.targetDate, flight.targetTime);
-      return !Number.isNaN(targetDateTime.getTime()) && targetDateTime <= now;
+      const status = getScheduleDeltaStatus(flight) || flight.status || mapFlightStatus(flight.rawStatus);
+      return !shouldKeepPastDueFlight({ status })
+        && !Number.isNaN(targetDateTime.getTime())
+        && targetDateTime <= now;
     })
     .map((flight) => flight.flight));
 }
@@ -483,12 +491,13 @@ function filterCurrentFlights(mappedFlights, now, trackingMap) {
         scheduledDateTime: getTaipeiDate(displayDate, flight.scheduledTime || flight.targetTime),
         minutes,
         status,
+        isPastDueKept: minutes <= 0 && shouldKeepPastDueFlight({ status }),
         displayEstimatedTime: hasFr24Eta ? formatClock(fr24Eta) : flight.estimatedTime || flight.targetTime,
         timeSource: hasFr24Eta ? "FR24 ETA" : "TDX",
       };
     })
     .filter((flight) => !Number.isNaN(flight.targetDateTime.getTime()))
-    .filter((flight) => flight.minutes > 0);
+    .filter((flight) => flight.minutes > 0 || flight.isPastDueKept);
 
   const uniqueFlights = new Map();
 
@@ -749,7 +758,9 @@ function render() {
           ${estimatedDisplayTime}
           ${hasFr24Eta ? `<small class="time-source">ETA</small>` : ""}
         </span>
-        <span class="minutes" data-label="倒數" role="cell">${flight.minutes} 分鐘</span>
+        <span class="minutes" data-label="倒數" role="cell">
+          ${flight.isPastDueKept ? "延遲中" : `${flight.minutes} 分鐘`}
+        </span>
         <span class="status-cell" data-label="狀態" role="cell">
           <span class="status ${getStatusClass(flight.status)}">
             ${flight.status}
